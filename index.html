@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>今日のトレンドニュース</title>
+  <meta name="description" content="最新のトレンドニュースをリアルタイムで表示するニュースアグリゲーターサイト">
+  <meta name="keywords" content="ニュース,トレンド,最新情報,テクノロジー,ビジネス,エンタメ,スポーツ">
   <style>
     body {
       font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -146,7 +148,6 @@
       color: #666;
     }
     
-    /* 追加：リンクスタイル */
     a {
       text-decoration: none;
       color: inherit;
@@ -155,6 +156,24 @@
     
     a:hover {
       text-decoration: none;
+    }
+    
+    .error-message {
+      background: #fff3f3;
+      border-left: 4px solid #e74c3c;
+      padding: 10px 15px;
+      color: #c0392b;
+      margin: 20px 0;
+      border-radius: 0 4px 4px 0;
+    }
+    
+    /* 広告エリア */
+    .ad-container {
+      margin: 20px 0;
+      text-align: center;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
     }
   </style>
 </head>
@@ -168,107 +187,138 @@
       <button class="category-btn" data-category="business">ビジネス</button>
       <button class="category-btn" data-category="entertainment">エンタメ</button>
       <button class="category-btn" data-category="sports">スポーツ</button>
+      <button class="category-btn" data-category="science">科学</button>
+      <button class="category-btn" data-category="health">健康</button>
     </div>
     <button class="refresh-btn" id="refresh-btn">更新</button>
   </div>
   
+  <!-- 広告エリア（上部） -->
+  <div class="ad-container">
+    <div id="ad-top">
+      <!-- 広告コードをここに配置 -->
+      <p style="color: #888; margin: 0;">広告エリア</p>
+    </div>
+  </div>
+  
   <div id="loading" class="loading">ニュースを読み込み中...</div>
+  <div id="error-container"></div>
   <div class="news-container" id="news-container"></div>
+  
+  <!-- 広告エリア（下部） -->
+  <div class="ad-container">
+    <div id="ad-bottom">
+      <!-- 広告コードをここに配置 -->
+      <p style="color: #888; margin: 0;">広告エリア</p>
+    </div>
+  </div>
   
   <p class="last-updated" id="last-updated"></p>
 
   <script>
-    // モックニュースデータ（リンク先URLを追加）
-    const mockNews = [
-      {
-        id: 1,
-        title: "次世代AI技術が日常生活を変える10の方法",
-        description: "最新の人工知能技術がどのように私たちの生活を変えていくのか、専門家が予測する近未来の姿を紹介します。",
-        category: "technology",
-        source: "Tech Today",
-        publishedAt: "2025-04-08T09:30:00Z",
-        imageUrl: "/api/placeholder/800/450",
-        url: "https://example.com/tech/ai-future"
-      },
-      {
-        id: 2,
-        title: "2025年注目のスタートアップ企業ベスト10",
-        description: "革新的なアイデアと急成長を遂げている新興企業の最新動向と今後の展望について紹介します。",
-        category: "business",
-        source: "Business Insider",
-        publishedAt: "2025-04-08T11:15:00Z",
-        imageUrl: "/api/placeholder/800/450",
-        url: "https://example.com/business/startups-2025"
-      },
-      {
-        id: 3,
-        title: "話題の映画「宇宙の果ての約束」が興行収入記録を更新",
-        description: "SF超大作が公開から2週間で興行収入300億円を突破。監督と主演俳優のインタビューを交えて作品の魅力に迫ります。",
-        category: "entertainment",
-        source: "Entertainment Weekly",
-        publishedAt: "2025-04-08T14:00:00Z",
-        imageUrl: "/api/placeholder/800/450",
-        url: "https://example.com/entertainment/space-movie"
-      },
-      {
-        id: 4,
-        title: "サッカー日本代表、世界ランキング6位に浮上",
-        description: "先月の国際試合での連勝を受け、日本代表チームの世界ランキングが過去最高の6位に。監督の新戦術が成功の鍵に。",
-        category: "sports",
-        source: "Sports News",
-        publishedAt: "2025-04-08T16:45:00Z",
-        imageUrl: "/api/placeholder/800/450",
-        url: "https://example.com/sports/japan-ranking"
-      },
-      {
-        id: 5,
-        title: "量子コンピューティングの実用化が加速、新たな研究成果",
-        description: "従来比100倍の計算速度を実現する量子プロセッサーの開発に成功。医療や気象予測分野での応用に期待が集まる。",
-        category: "technology",
-        source: "Science Daily",
-        publishedAt: "2025-04-08T10:20:00Z",
-        imageUrl: "/api/placeholder/800/450",
-        url: "https://example.com/tech/quantum-computing"
-      },
-      {
-        id: 6,
-        title: "円高進行、1ドル=100円台前半に突入",
-        description: "日本経済の回復と米国のインフレ懸念を背景に円高が進行。輸出企業への影響と消費者メリットを経済専門家が解説。",
-        category: "business",
-        source: "Financial Times",
-        publishedAt: "2025-04-08T13:10:00Z",
-        imageUrl: "/api/placeholder/800/450",
-        url: "https://example.com/business/yen-dollar-rate"
-      },
-      {
-        id: 7,
-        title: "人気アニメ「クリスタル・ブレイド」最終話、視聴率40%を記録",
-        description: "3年にわたって放送された人気アニメシリーズの最終回が大きな反響を呼び、SNSでも関連ワードがトレンド入り。",
-        category: "entertainment",
-        source: "Anime News",
-        publishedAt: "2025-04-08T18:30:00Z",
-        imageUrl: "/api/placeholder/800/450",
-        url: "https://example.com/entertainment/crystal-blade-finale"
-      },
-      {
-        id: 8,
-        title: "テニス界の新星、グランドスラム初優勝で世界ランク3位に",
-        description: "わずか19歳の日本人選手が見せた驚異的な成長と独自のプレースタイルが世界中のテニスファンを魅了している。",
-        category: "sports",
-        source: "Tennis Magazine",
-        publishedAt: "2025-04-08T15:25:00Z",
-        imageUrl: "/api/placeholder/800/450",
-        url: "https://example.com/sports/tennis-champion"
-      }
-    ];
-
     // DOM要素の取得
     const newsContainer = document.getElementById('news-container');
     const lastUpdatedElement = document.getElementById('last-updated');
     const loadingElement = document.getElementById('loading');
+    const errorContainer = document.getElementById('error-container');
     const refreshButton = document.getElementById('refresh-btn');
     const categoryButtons = document.querySelectorAll('.category-btn');
-
+    
+    // カテゴリーとGoogleニュースのRSSフィードURLのマッピング
+    const categoryFeeds = {
+      'technology': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtcGhHZ0pLVUNnQVAB?hl=ja&gl=JP&ceid=JP:ja',
+      'business': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtcGhHZ0pLVUNnQVAB?hl=ja&gl=JP&ceid=JP:ja',
+      'entertainment': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNREpxYW5RU0FtcGhHZ0pLVUNnQVAB?hl=ja&gl=JP&ceid=JP:ja',
+      'sports': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1ZEdvU0FtcGhHZ0pLVUNnQVAB?hl=ja&gl=JP&ceid=JP:ja',
+      'science': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp0Y1RjU0FtcGhHZ0pLVUNnQVAB?hl=ja&gl=JP&ceid=JP:ja',
+      'health': 'https://news.google.com/rss/topics/CAAqIQgKIhtDQkFTRGdvSUwyMHZNR3QwTlRFU0FtcGhLQUFQAQ?hl=ja&gl=JP&ceid=JP:ja',
+      'all': 'https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja'
+    };
+    
+    // カテゴリー名の日本語変換
+    function getCategoryName(category) {
+      const categories = {
+        'technology': 'テクノロジー',
+        'business': 'ビジネス',
+        'entertainment': 'エンタメ',
+        'sports': 'スポーツ',
+        'science': '科学',
+        'health': '健康',
+        'all': 'トップニュース'
+      };
+      return categories[category] || category;
+    }
+    
+    // RSSフィードを取得してパースする関数
+    async function fetchRSSFeed(category) {
+      try {
+        // RSSフィードのURLを取得
+        const feedUrl = categoryFeeds[category];
+        
+        // CORSプロキシを使用（GitHub Pagesでクロスオリジンのリクエストを可能にするため）
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`;
+        
+        // フィードを取得
+        const response = await fetch(proxyUrl);
+        if (!response.ok) {
+          throw new Error('ニュースの取得に失敗しました');
+        }
+        
+        const data = await response.text();
+        
+        // XML文字列をDOMオブジェクトに変換
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(data, 'text/xml');
+        
+        // 記事アイテムを取得
+        const items = xmlDoc.querySelectorAll('item');
+        
+        // 記事データを整形
+        const newsArray = Array.from(items).slice(0, 10).map((item, index) => {
+          // タイトルとリンクを取得
+          const title = item.querySelector('title')?.textContent || '無題';
+          const link = item.querySelector('link')?.textContent || '#';
+          
+          // 公開日を取得して変換
+          const pubDate = item.querySelector('pubDate')?.textContent || '';
+          const date = pubDate ? new Date(pubDate) : new Date();
+          
+          // 説明を取得
+          let description = item.querySelector('description')?.textContent || '';
+          
+          // HTML形式の説明からテキストを抽出
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = description;
+          description = tempDiv.textContent || tempDiv.innerText || '';
+          
+          // 説明が長い場合は省略
+          if (description.length > 100) {
+            description = description.substring(0, 100) + '...';
+          }
+          
+          // ソース（メディア名）を取得
+          const sourceElement = item.querySelector('source');
+          const source = sourceElement ? sourceElement.textContent : 'ニュースソース';
+          
+          return {
+            id: index + 1,
+            title: title,
+            description: description,
+            category: category,
+            source: source,
+            publishedAt: date.toISOString(),
+            imageUrl: `/api/placeholder/800/450?text=${encodeURIComponent(title.substring(0, 20))}`,
+            url: link
+          };
+        });
+        
+        return newsArray;
+      } catch (error) {
+        console.error('ニュース取得エラー:', error);
+        throw error;
+      }
+    }
+    
     // ニュース表示関数
     function displayNews(newsArray) {
       newsContainer.innerHTML = '';
@@ -303,39 +353,68 @@
         newsContainer.appendChild(newsItem);
       });
     }
-
-    // カテゴリー名の日本語変換
-    function getCategoryName(category) {
-      const categories = {
-        'technology': 'テクノロジー',
-        'business': 'ビジネス',
-        'entertainment': 'エンタメ',
-        'sports': 'スポーツ'
-      };
-      return categories[category] || category;
-    }
-
+    
     // ニュース読み込み関数
-    function loadNews(category = 'all') {
+    async function loadNews(category = 'all') {
       loadingElement.style.display = 'block';
       newsContainer.style.display = 'none';
+      errorContainer.innerHTML = '';
       
-      // 実際のAPIがあれば、ここでフェッチする
-      setTimeout(() => {
-        let filteredNews = mockNews;
-        if (category !== 'all') {
-          filteredNews = mockNews.filter(news => news.category === category);
-        }
-        
-        displayNews(filteredNews);
-        loadingElement.style.display = 'none';
-        newsContainer.style.display = 'grid';
+      try {
+        const newsData = await fetchRSSFeed(category);
+        displayNews(newsData);
         
         const now = new Date();
         lastUpdatedElement.textContent = `最終更新: ${now.getFullYear()}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-      }, 800); // ローディング表示のためのディレイ
+      } catch (error) {
+        // エラーメッセージを表示
+        errorContainer.innerHTML = `
+          <div class="error-message">
+            ${error.message || 'ニュースの取得中にエラーが発生しました。しばらくしてから再度お試しください。'}
+          </div>
+        `;
+        
+        // バックアップとしてデモデータを表示
+        displayFallbackNews(category);
+      } finally {
+        loadingElement.style.display = 'none';
+        newsContainer.style.display = 'grid';
+      }
     }
-
+    
+    // フォールバック用のデモニュース
+    function displayFallbackNews(category) {
+      const fallbackNews = [
+        {
+          id: 1,
+          title: "APIからのデータ取得に失敗しました - デモデータを表示中",
+          description: "最新のニュースを取得できませんでした。インターネット接続を確認するか、しばらく経ってから再度お試しください。",
+          category: "technology",
+          source: "このサイト",
+          publishedAt: new Date().toISOString(),
+          imageUrl: "/api/placeholder/800/450",
+          url: "#"
+        },
+        {
+          id: 2,
+          title: "ニュースフィードが一時的に利用できません",
+          description: "技術的な問題により、現在ニュースフィードが利用できません。復旧までしばらくお待ちください。",
+          category: "business",
+          source: "このサイト",
+          publishedAt: new Date().toISOString(),
+          imageUrl: "/api/placeholder/800/450",
+          url: "#"
+        }
+      ];
+      
+      let filteredNews = fallbackNews;
+      if (category !== 'all' && category !== 'technology' && category !== 'business') {
+        filteredNews = [];
+      }
+      
+      displayNews(filteredNews);
+    }
+    
     // カテゴリーフィルタリング
     categoryButtons.forEach(button => {
       button.addEventListener('click', () => {
@@ -344,13 +423,19 @@
         loadNews(button.dataset.category);
       });
     });
-
+    
     // 更新ボタン
     refreshButton.addEventListener('click', () => {
       const activeCategory = document.querySelector('.category-btn.active').dataset.category;
       loadNews(activeCategory);
     });
-
+    
+    // 定期的な自動更新（30分ごと）
+    setInterval(() => {
+      const activeCategory = document.querySelector('.category-btn.active').dataset.category;
+      loadNews(activeCategory);
+    }, 30 * 60 * 1000);
+    
     // 初期ロード
     loadNews();
   </script>
