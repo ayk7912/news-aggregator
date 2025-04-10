@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今日のトレンドニュース</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+
+        .news-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .news-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .news-item {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .news-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .news-image {
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .news-content {
+            padding: 20px;
+        }
+
+        .news-category {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .news-title {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .news-description {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .news-meta {
+            display: flex;
+            justify-content: space-between;
+            color: #999;
+            font-size: 12px;
+        }
+
+        .last-updated {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .category-filter {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .category-btn {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 5px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .category-btn.active {
+            background: #2c3e50;
+            color: white;
+            border-color: #2c3e50;
+        }
+
+        .refresh-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #219653;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>今日のトレンドニュース</h1>
+
+    <div class="header">
+        <div class="category-filter">
+            <button class="category-btn active" data-category="all">すべて</button>
+            <button class="category-btn" data-category="technology">テクノロジー</button>
+            <button class="category-btn" data-category="business">ビジネス</button>
+            <button class="category-btn" data-category="entertainment">エンタメ</button>
+            <button class="category-btn" data-category="sports">スポーツ</button>
+        </div>
+        <button class="refresh-btn" id="refresh-btn">更新</button>
+    </div>
+
+    <div id="loading" class="loading">ニュースを読み込み中...</div>
+    <div class="news-container" id="news-container"></div>
+
+    <p class="last-updated" id="last-updated"></p>
+
+    <script>
+        // モックニュースデータ
+        const mockNews = [
+            {
+                id: 1,
+                title: "次世代AI技術が日常生活を変える10の方法",
+                description: "最新の人工知能技術がどのように私たちの生活を変えていくのか、専門家が予測する近未来の姿を紹介します。",
+                category: "technology",
+                source: "Tech Today",
+                publishedAt: "2025-04-08T09:30:00Z",
+                imageUrl: "/api/placeholder/800/450"
+            },
+            {
+                id: 2,
+                title: "2025年注目のスタートアップ企業ベスト10",
+                description: "革新的なアイデアと急成長を遂げている新興企業の最新動向と今後の展望について紹介します。",
+                category: "business",
+                source: "Business Insider",
+                publishedAt: "2025-04-08T11:15:00Z",
+                imageUrl: "/api/placeholder/800/450"
+            },
+            {
+                id: 3,
+                title: "話題の映画「宇宙の果ての約束」が興行収入記録を更新",
+                description: "SF超大作が公開から2週間で興行収入300億円を突破。監督と主演俳優のインタビューを交えて作品の魅力に迫ります。",
+                category: "entertainment",
+                source: "Entertainment Weekly",
+                publishedAt: "2025-04-08T14:00:00Z",
+                imageUrl: "/api/placeholder/800/450"
+            },
+            {
+                id: 4,
+                title: "サッカー日本代表、世界ランキング6位に浮上",
+                description: "先月の国際試合での連勝を受け、日本代表チームの世界ランキングが過去最高の6位に。監督の新戦術が成功の鍵に。",
+                category: "sports",
+                source: "Sports News",
+                publishedAt: "2025-04-08T16:45:00Z",
+                imageUrl: "/api/placeholder/800/450"
+            },
+            {
+                id: 5,
+                title: "量子コンピューティングの実用化が加速、新たな研究成果",
+                description: "従来比100倍の計算速度を実現する量子プロセッサーの開発に成功。医療や気象予測分野での応用に期待が集まる。",
+                category: "technology",
+                source: "Science Daily",
+                publishedAt: "2025-04-08T10:20:00Z",
+                imageUrl: "/api/placeholder/800/450"
+            },
+            {
+                id: 6,
+                title: "円高進行、1ドル=100円台前半に突入",
+                description: "日本経済の回復と米国のインフレ懸念を背景に円高が進行。輸出企業への影響と消費者メリットを経済専門家が解説。",
+                category: "business",
+                source: "Financial Times",
+                publishedAt: "2025-04-08T13:10:00Z",
+                imageUrl: "/api/placeholder/800/450"
+            },
+            {
+                id: 7,
+                title: "人気アニメ「クリスタル・ブレイド」最終話、視聴率40%を記録",
+                description: "3年にわたって放送された人気アニメシリーズの最終回が大きな反響を呼び、SNSでも関連ワードがトレンド入り。",
+                category: "entertainment",
+                source: "Anime News",
+                publishedAt: "2025-04-08T18:30:00Z",
+                imageUrl: "/api/placeholder/800/450"
+            },
+            {
+                id: 8,
+                title: "テニス界の新星、グランドスラム初優勝で世界ランク3位に",
+                description: "わずか19歳の日本人選手が見せた驚異的な成長と独自のプレースタイルが世界中のテニスファンを魅了している。",
+                category: "sports",
+                source: "Tennis Magazine",
+                publishedAt: "2025-04-08T15:25:00Z",
+                imageUrl: "/api/placeholder/800/450"
+            }
+        ];
+
+        // DOM要素の取得
+        const newsContainer = document.getElementById('news-container');
+        const lastUpdatedElement = document.getElementById('last-updated');
+        const loadingElement = document.getElementById('loading');
+        const refreshButton = document.getElementById('refresh-btn');
+        const categoryButtons = document.querySelectorAll('.category-btn');
+
+        // ニュース表示関数
+        function displayNews(newsArray) {
+            newsContainer.innerHTML = '';
+
+            if (newsArray.length === 0) {
+                newsContainer.innerHTML = '<p class="loading">この分類のニュースはありません</p>';
+                return;
+            }
+
+            newsArray.forEach(news => {
+                const date = new Date(news.publishedAt);
+                const formattedDate = `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+
+                const newsItem = document.createElement('div');
+                newsItem.className = 'news-item';
+                newsItem.innerHTML = `
+          <div class="news-image" style="background-image: url('${news.imageUrl}')"></div>
+          <div class="news-content">
+            <span class="news-category">${getCategoryName(news.category)}</span>
+            <h3 class="news-title">${news.title}</h3>
+            <p class="news-description">${news.description}</p>
+            <div class="news-meta">
+              <span>${news.source}</span>
+              <span>${formattedDate}</span>
+            </div>
+          </div>
+        `;
+                newsContainer.appendChild(newsItem);
+            });
+        }
+
+        // カテゴリー名の日本語変換
+        function getCategoryName(category) {
+            const categories = {
+                'technology': 'テクノロジー',
+                'business': 'ビジネス',
+                'entertainment': 'エンタメ',
+                'sports': 'スポーツ'
+            };
+            return categories[category] || category;
+        }
+
+        // ニュース読み込み関数
+        function loadNews(category = 'all') {
+            loadingElement.style.display = 'block';
+            newsContainer.style.display = 'none';
+
+            // 実際のAPIがあれば、ここでフェッチする
+            setTimeout(() => {
+                let filteredNews = mockNews;
+                if (category !== 'all') {
+                    filteredNews = mockNews.filter(news => news.category === category);
+                }
+
+                displayNews(filteredNews);
+                loadingElement.style.display = 'none';
+                newsContainer.style.display = 'grid';
+
+                const now = new Date();
+                lastUpdatedElement.textContent = `最終更新: ${now.getFullYear()}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            }, 800); // ローディング表示のためのディレイ
+        }
+
+        // カテゴリーフィルタリング
+        categoryButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                categoryButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                loadNews(button.dataset.category);
+            });
+        });
+
+        // 更新ボタン
+        refreshButton.addEventListener('click', () => {
+            const activeCategory = document.querySelector('.category-btn.active').dataset.category;
+            loadNews(activeCategory);
+        });
+
+        // 初期ロード
+        loadNews();
+    </script>
+</body>
+
+</html>
